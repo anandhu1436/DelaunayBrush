@@ -1,0 +1,71 @@
+cmake_minimum_required(VERSION 3.16)
+project(circumsphereDLL)
+
+# Set the CMake toolchain file for vcpkg
+set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+
+# Enable verbose output
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+# Set required policies
+cmake_policy(SET CMP0167 NEW)  # Use new method for finding Boost
+
+set(BOOST_ROOT "C:/vcpkg/installed/x64-windows")
+set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include")
+set(BOOST_LIBRARYDIR "${BOOST_ROOT}/lib")
+
+set(CMAKE_PREFIX_PATH ${BOOST_ROOT})
+
+# Find required packages
+find_package(Boost REQUIRED)
+list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+# Libigl
+find_package(libigl CONFIG REQUIRED)
+
+find_package(Eigen3 CONFIG REQUIRED)
+
+# Enable the target igl::glfw
+# igl_include(glfw)
+# igl_include(eigen)
+find_package(CGAL REQUIRED)
+
+# Include GMP and MPFR
+set(GMP_INCLUDE_DIR "C:/vcpkg/installed/x64-windows/include")
+set(GMP_LIBRARY_RELEASE "C:/vcpkg/installed/x64-windows/debug/lib/gmp.lib")
+set(GMP_LIBRARY_DEBUG "C:/vcpkg/installed/x64-windows/debug/lib/gmp.lib")
+set(GMPXX_INCLUDE_DIR "C:/vcpkg/installed/x64-windows/include")
+set(GMPXX_LIBRARIES "C:/vcpkg/installed/x64-windows/debug/lib/gmpxx.lib")
+set(MPFR_INCLUDE_DIR "C:/vcpkg/installed/x64-windows/include")
+set(MPFR_LIBRARIES "C:/vcpkg/installed/x64-windows/debug/lib/mpfr.lib")
+
+# Add definitions for static linking of Boost with CGAL
+set(CGAL_Boost_USE_STATIC_LIBS ON)
+set(CGAL_ENABLE_TESTING ON)
+
+# Set Compiler for Unix systems
+if(UNIX)
+   set(CMAKE_CXX_COMPILER g++)
+   add_definitions(-g -O2 -std=c++14 -Wall -Wextra -Wfatal-errors -Wno-pragmas -Wno-unknown-warning-option)
+   add_definitions(-Wno-sign-compare -Wno-type-limits)
+endif()
+
+# Set Compiler for Windows (MSVC)
+if(MSVC)
+   add_definitions(/MP /wd4244 /wd4127 /wd4267 /wd4706 /wd4458 /wd4996 /wd26495 /openmp)
+
+   # Override warning level to W4
+   if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+       string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+   else()
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+   endif()
+endif()
+
+# Source files
+file(GLOB SRC_FILES *.cpp)
+
+# Define the shared library
+add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
+
+# Link libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen PUBLIC CGAL::CGAL ${GMPXX_LIBRARIES} ${GMP_LIBRARY_RELEASE} ${MPFR_LIBRARIES} ${Boost_LIBRARIES})

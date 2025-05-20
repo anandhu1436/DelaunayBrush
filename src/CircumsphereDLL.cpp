@@ -354,7 +354,7 @@ extern "C" DLL_EXPORT int computeSurfaceMesh(
     }
 
     // Voxel grid setup
-    int res = 128;
+    // int res = 32;
     Eigen::Vector3d min_corner = points_mat.rowwise().minCoeff();
     Eigen::Vector3d max_corner = points_mat.rowwise().maxCoeff();
     Eigen::Vector3d diag = max_corner - min_corner;
@@ -413,10 +413,10 @@ extern "C" DLL_EXPORT int computeSurfaceMesh(
 
     Eigen::MatrixXd filte_v = unorderedSetToEigenMatrix(unique_vertices);
 
-    uniform_remesh(mcV, mcF, voxel_size);
+    // uniform_remesh(mcV, mcF, voxel_size);
 
 
-    computeFromOctahedronLapAndBary(1.0, filte_v, mcV, mcF, mcV);
+    // computeFromOctahedronLapAndBary(1.0, filte_v, mcV, mcF, mcV);
 
     int vCount = mcV.rows();
     int fCount = mcF.rows();
