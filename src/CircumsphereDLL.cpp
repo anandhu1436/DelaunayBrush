@@ -162,8 +162,8 @@ void sparseLSsolve(Eigen::SparseMatrix<double>& A, Eigen::MatrixXd& b, Eigen::Ma
         firstSolving = true;
         if (firstSolving) {
             printf("=!=!=!=!=!=!=!=!=!=!=!=!= RECALCUL DEPUIS DEBUT\n");
-            X = solver.solve(b);
-            // X = solver.solveWithGuess( b, previousSolution);
+            // X = solver.solve(b);
+            X = solver.solveWithGuess( b, X);
             firstSolving = false;
             // firstSolving = true;
             // std::cout << X << std::endl;
@@ -213,7 +213,6 @@ void sparseVerticalConcat(
     M.setFromTriplets(triplets.begin(), triplets.end());
 }
 
-
 void computeFromOctahedronLapAndBary(double w, const Eigen::MatrixXd& inputPts,
                                       const Eigen::MatrixXd& VP,
                                       const Eigen::MatrixXi& FP,
@@ -222,11 +221,16 @@ void computeFromOctahedronLapAndBary(double w, const Eigen::MatrixXd& inputPts,
     Eigen::VectorXd sqrD;
     Eigen::VectorXi I;
     Eigen::MatrixXd C;
+    clock_t start = clock();
     igl::point_mesh_squared_distance(inputPts, VP, FP, sqrD, I, C);
+    clock_t stop = clock();
+    double time = double (stop - start) / CLOCKS_PER_SEC;
+    std::cout << "time for projecting points on proxy : " <<  time << " seconds" << std::endl;
 
     const int n = inputPts.rows();
     const int n_vertices = VP.rows();
 
+    start = clock();
     // Step 2: Build barycentric constraint matrix
     std::vector<Eigen::Triplet<double>> triplets;
     triplets.reserve(n * 3); // Each point contributes 3 non-zero entries
@@ -266,6 +270,7 @@ void computeFromOctahedronLapAndBary(double w, const Eigen::MatrixXd& inputPts,
     Eigen::SparseMatrix<double> L;
     igl::cotmatrix(VP, FP, L);
 
+
     // Debug output
     std::cout << "Barycentric constraint matrix: " << Ac.rows() << "x" << Ac.cols() << std::endl;
     std::cout << "Laplacian matrix: " << L.rows() << "x" << L.cols() << std::endl;
@@ -277,6 +282,10 @@ void computeFromOctahedronLapAndBary(double w, const Eigen::MatrixXd& inputPts,
     Eigen::MatrixXd bcl_w(bc.rows() + L.rows(), 3);
     bcl_w << sqrt(1.0/w) * bc,
              Eigen::MatrixXd::Zero(L.rows(), 3);
+
+    stop = clock();
+    time = double (stop - start) / CLOCKS_PER_SEC;
+    std::cout << "time for computing all barycentric coordinates, cotangent matrix and all required matrices : " <<  time << " seconds" << std::endl;
 
     // Solve the linear system
     sparseLSsolve(Acl_w, bcl_w, Vcl, true);
@@ -425,6 +434,11 @@ extern "C" DLL_EXPORT int computeSurfaceMesh(
         outFaces[i * 3 + 0] = mcF(i, 0);
         outFaces[i * 3 + 1] = mcF(i, 1);
         outFaces[i * 3 + 2] = mcF(i, 2);
+    }
+
+     // Invert face orientation by swapping two indices in each face
+    for (int i = 0; i < mcF.rows(); ++i) {
+        std::swap(mcF(i, 0), mcF(i, 1));  // Flip orientation
     }
 
 
